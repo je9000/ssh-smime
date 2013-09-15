@@ -14,9 +14,15 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <openssl/pem.h>
-#include <openssl/cms.h>
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
+
+#ifdef USE_OPENSSL_CMS
+#include <openssl/cms.h>
+#else
+#include <openssl/pkcs7.h>
+#endif
+
 
 #define SSH_MAX_PUBKEY_BYTES 8192
 
@@ -226,9 +232,15 @@ STACK_OF(X509) *create_cert_stack(char **recipients)
 int main(int argc, char **argv)
 {
     STACK_OF(X509) *recips = NULL;
-    CMS_ContentInfo *cms = NULL;
     int ret = 1;
+
+#ifdef USE_OPENSSL_CMS
+    CMS_ContentInfo *crypt = NULL;
     int flags = CMS_BINARY;
+#else
+    PKCS7 *crypt = NULL;
+    int flags = PKCS7_BINARY;
+#endif
 
     recips = create_cert_stack(parse_opts(argc, argv));
 
@@ -236,13 +248,21 @@ int main(int argc, char **argv)
     ERR_load_crypto_strings();
 
     /* encrypt content */
-    cms = CMS_encrypt(recips, in_bio, EVP_aes_256_cbc(), flags);
+#ifdef USE_OPENSSL_CMS
+    crypt = CMS_encrypt(recips, in_bio, EVP_aes_256_cbc(), flags);
+#else
+    crypt = PKCS7_encrypt(recips, in_bio, EVP_aes_256_cbc(), flags);
+#endif
 
-    if (!cms)
+    if (!crypt)
         goto err;
 
     /* Write out S/MIME message */
-    if (!SMIME_write_CMS(out_bio, cms, in_bio, flags))
+#ifdef USE_OPENSSL_CMS
+    if (!SMIME_write_CMS(out_bio, crypt, in_bio, flags))
+#else
+    if (!SMIME_write_PKCS7(out_bio, crypt, in_bio, flags))
+#endif
         goto err;
 
     ret = 0;
@@ -254,8 +274,12 @@ int main(int argc, char **argv)
         ERR_print_errors_fp(stderr);
     }
 
-    if (cms)
-        CMS_ContentInfo_free(cms);
+    if (crypt)
+#ifdef USE_OPENSSL_CMS
+        CMS_ContentInfo_free(crypt);
+#else
+        PKCS7_free(crypt);
+#endif
 
     sk_X509_pop_free(recips, X509_free);
 
