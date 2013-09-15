@@ -26,7 +26,8 @@ extern int optind;
 BIO *in_bio, *out_bio;
 
 void die_usage() {
-    fprintf(stderr, "usage: ssh-smime [-h] [-i file] [-o file] ssh-pubkey1 ...\n");
+    fprintf(stderr, "usage: ssh-smime [-h] [-i file] [-o file] ssh-pubkey1 [ssh-pubkey2] [...]\n");
+    fprintf(stderr, "\nS/MIME encrypt input using ssh keys for recipients.\n");
     fprintf(stderr, "\nIf not specified, input and output default to stdin and stdout.\n");
     exit(2);
 }
