@@ -33,10 +33,18 @@ BIO *in_bio, *out_bio;
 
 void die_usage() {
     fprintf(stderr, "usage: ssh-smime [-h] [-i file] [-o file] ssh-pubkey1 [ssh-pubkey2] [...]\n\n");
+#if USE_OPENSSL_CMS
+    fprintf(stderr, "CMS encrypt input using ssh keys for recipients.\n\n");
+#else
     fprintf(stderr, "S/MIME encrypt input using ssh keys for recipients.\n\n");
+#endif
     fprintf(stderr, "If not specified, input and output default to stdin and stdout.\n\n");
     fprintf(stderr, "Decryption can be done via the openssl command:\n");
+#if USE_OPENSSL_CMS
+    fprintf(stderr, "openssl cms -decrypt -inform PEM -in encrypted -inkey ~/.ssh/id_rsa -out decrypted\n");
+#else
     fprintf(stderr, "openssl smime -decrypt -in encrypted -inkey ~/.ssh/id_rsa -out decrypted\n");
+#endif
     exit(2);
 }
 
@@ -261,9 +269,9 @@ int main(int argc, char **argv)
     if (!crypt)
         goto err;
 
-    /* Write out S/MIME message */
+    /* Write output in the appropriate format */
 #ifdef USE_OPENSSL_CMS
-    if (!SMIME_write_CMS(out_bio, crypt, in_bio, flags))
+    if (!PEM_write_bio_CMS_stream(out_bio, crypt, in_bio, flags))
 #else
     if (!SMIME_write_PKCS7(out_bio, crypt, in_bio, flags))
 #endif
