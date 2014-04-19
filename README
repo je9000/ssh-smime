@@ -3,6 +3,9 @@ ssh-smime
 
 S/MIME encryption with SSH RSA public keys.
 
+Used to securely share files with someone when all you have is their SSH public
+key.
+
 
 Synopsis
 =======
@@ -17,7 +20,8 @@ ssh-smime -i input-file -o encrypted-file recipient1-key recipient2-key
 
 Decryption:
 
-openssl smime -decrypt -in encrypted-file -inkey ~/.ssh/id_rsa -out decrypted-file
+openssl smime -decrypt -in encrypted -inkey ~/.ssh/id_rsa -out decrypted
+
 
 Description
 ===========
