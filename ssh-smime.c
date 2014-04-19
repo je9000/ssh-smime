@@ -1,7 +1,7 @@
 /*
  * ssh-smime - S/MIME file encryption with SSH public keys.
  *
- * Copyright John Eaglesham, 2013
+ * Copyright John Eaglesham, 2013-2014
  *
  * Based on the OpenSSL Simple S/MIME encrypt example.
  *
@@ -69,8 +69,8 @@ char **parse_opts(int argc, char **argv)
     // User didn't specify any recipients.
     if (!argc) die_usage();
 
-    if (!in_bio) BIO_set_fp(in_bio, stdin, BIO_NOCLOSE);
-    if (!out_bio) BIO_set_fp(out_bio, stdout, BIO_NOCLOSE);
+    if (!in_bio) in_bio = BIO_new_fp(stdin, BIO_NOCLOSE);
+    if (!out_bio) out_bio = BIO_new_fp(stdout, BIO_NOCLOSE);
 
     return argv;
 }
@@ -106,6 +106,8 @@ X509 *gen_temp_cert(RSA *key)
                                0);
 
     X509_set_issuer_name(cert, name);
+
+    EVP_PKEY_free(pk);
 
     return cert;
 }
@@ -287,6 +289,9 @@ int main(int argc, char **argv)
 
     BIO_free(in_bio);
     BIO_free(out_bio);
+
+    ERR_free_strings();
+    EVP_cleanup();
 
     return ret;
 }
